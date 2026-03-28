@@ -5,11 +5,11 @@ local M = {}
 function M.setup()
   lc.keymap.set('main', '<enter>', function()
     local path = lc.api.get_current_path()
-    if #path < 1 then
+    if #path < 2 then
       lc.cmd 'enter'
-    elseif path[1] == 'container' then
+    elseif path[2] == 'container' then
       require('docker.container').select_action()
-    elseif path[1] == 'image' then
+    elseif path[2] == 'image' then
       require('docker.image').select_action()
     end
   end)
@@ -27,7 +27,7 @@ end
 
 -- 第2级：显示指定类型的所有资源
 local function list_level_2(path, cb)
-  local resource_type = path[1]
+  local resource_type = path[2]
 
   if resource_type == 'container' then
     require('docker.container').list(cb)
@@ -37,10 +37,10 @@ local function list_level_2(path, cb)
 end
 
 function M.list(path, cb)
-  if #path == 0 then
+  if #path == 1 then
     -- 第1级：资源类型
     list_level_1(cb)
-  elseif #path == 1 then
+  elseif #path == 2 then
     -- 第2级：具体资源
     list_level_2(path, cb)
   else
@@ -52,17 +52,17 @@ function M.preview(entry, cb)
   local path = lc.api.get_current_path()
 
   -- 第1级：显示提示信息
-  if #path == 0 then
+  if #path == 1 then
     cb 'Select a resource type to view'
     return
-  elseif #path == 1 then
-    if path[1] == 'container' then require('docker.container').preview(entry, cb) end
+  elseif #path == 2 then
+    if path[2] == 'container' then require('docker.container').preview(entry, cb) end
   else
   end
 
   -- 第2级：显示资源详细状态
-  if #path == 1 then
-    if path[1] == 'image' then
+  if #path == 2 then
+    if path[2] == 'image' then
       require('docker.image').preview(entry, cb)
       return
     end
