@@ -1,4 +1,16 @@
+local config = require 'docker.config'
+
 local M = {}
+
+local function command_name()
+  local cfg = config.get() or {}
+  return cfg.command or 'docker'
+end
+
+local function preview_log_lines()
+  local cfg = config.get() or {}
+  return tostring(cfg.preview_log_lines or 35)
+end
 
 -- 辅助函数：格式化时间差，类似 Docker 的输出格式
 local function format_duration(seconds, ago)
@@ -201,7 +213,7 @@ function M.exec(cmd)
 end
 
 function M.container_list()
-  local cmd = { 'docker', 'container', 'ps', '-a', '--format', '{{json .}}' }
+  local cmd = { command_name(), 'container', 'ps', '-a', '--format', '{{json .}}' }
 
   return M.exec(cmd):next(function(stdout)
     stdout = stdout:trim()
@@ -218,7 +230,7 @@ function M.container_list()
 end
 
 function M.inspect_container(container_id)
-  local cmd = { 'docker', 'container', 'inspect', container_id }
+  local cmd = { command_name(), 'container', 'inspect', container_id }
 
   return M.exec(cmd):next(function(stdout)
     local success, data = pcall(lc.json.decode, stdout)
@@ -228,7 +240,7 @@ function M.inspect_container(container_id)
 end
 
 function M.image_list()
-  local cmd = { 'docker', 'image', 'ls', '--format', '{{json .}}' }
+  local cmd = { command_name(), 'image', 'ls', '--format', '{{json .}}' }
 
   return M.exec(cmd):next(function(stdout)
     stdout = stdout:trim()
@@ -245,7 +257,7 @@ function M.image_list()
 end
 
 function M.inspect_image(image_id)
-  local cmd = { 'docker', 'image', 'inspect', image_id }
+  local cmd = { command_name(), 'image', 'inspect', image_id }
 
   return M.exec(cmd):next(function(stdout)
     local success, data = pcall(lc.json.decode, stdout)
@@ -255,7 +267,7 @@ function M.inspect_image(image_id)
 end
 
 function M.image_history(image_id)
-  return M.exec({ 'docker', 'image', 'history', image_id, '--no-trunc', '--format', '{{json .}}' }):next(
+  return M.exec({ command_name(), 'image', 'history', image_id, '--no-trunc', '--format', '{{json .}}' }):next(
     function(stdout)
       local layers = lc.tbl_map(function(line)
         local success, data = pcall(lc.json.decode, line)
@@ -299,17 +311,17 @@ function M.get_log_cmd(container_id, container_name, follow)
           table.insert(args, '-f')
         else
           table.insert(args, '-n')
-          table.insert(args, '35')
+          table.insert(args, preview_log_lines())
         end
         table.insert(args, 'CONTAINER_NAME=' .. container_name)
         return args
       else
-        local args = { 'docker', 'container', 'logs' }
+        local args = { command_name(), 'container', 'logs' }
         if follow then
           table.insert(args, '--follow')
         else
           table.insert(args, '--tail')
-          table.insert(args, '35')
+          table.insert(args, preview_log_lines())
         end
         table.insert(args, container_id)
         return args
