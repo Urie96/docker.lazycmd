@@ -1,5 +1,3 @@
-local promise = require 'promise'
-
 local M = {}
 
 -- 辅助函数：格式化时间差，类似 Docker 的输出格式
@@ -191,7 +189,7 @@ local function normalize_image_data(data)
 end
 
 function M.exec(cmd)
-  return promise.new(function(resolve, reject)
+  return Promise.new(function(resolve, reject)
     lc.system(cmd, function(output)
       if output.code == 0 then
         resolve(output.stdout)

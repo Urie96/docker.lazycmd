@@ -1,4 +1,3 @@
-local promise = require 'promise'
 local adapter = require 'docker.adapter'
 
 local M = {}
@@ -84,7 +83,7 @@ function M.preview(entry, cb)
     end)
     :catch(function(err) lc.notify('Failed to get container logs: ' .. tostring(err)) end)
 
-  promise.all({ detail_area, log_area }):next(function(results)
+  Promise.all({ detail_area, log_area }):next(function(results)
     local lines = results[1]
     table.insert(lines, ' ')
     lc.list_extend(lines, results[2])

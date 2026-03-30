@@ -1,4 +1,3 @@
-local promise = require 'promise'
 local adapter = require 'docker.adapter'
 
 local M = {}
@@ -134,7 +133,7 @@ function M.preview(entry, cb)
     end)
     :catch(function(err) lc.notify('Failed to get image history' .. tostring(err)) end)
 
-  promise.all({ detail_area, container_area, history_area }):next(function(results)
+  Promise.all({ detail_area, container_area, history_area }):next(function(results)
     local lines = results[1]
     lc.list_extend(lines, results[2])
     lc.list_extend(lines, results[3])
