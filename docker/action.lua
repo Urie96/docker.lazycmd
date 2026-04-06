@@ -38,13 +38,13 @@ local function exec_p(cmd)
 end
 
 local function current_entry(kind)
-  local entry = lc.api.page_get_hovered()
+  local entry = lc.api.get_hovered()
   if type(entry) ~= 'table' or entry.kind ~= kind then return nil end
   return entry
 end
 
-local function set_preview(lines_or_text)
-  lc.api.page_set_preview(lines_or_text)
+local function set_preview(path, lines_or_text)
+  lc.api.set_preview(path, lines_or_text)
 end
 
 local function notify_error(prefix, err)
@@ -332,11 +332,12 @@ end
 function M.show_logs(entry)
   local container = container_for(entry)
   if not container then return end
+  local hovered_path = lc.api.get_hovered_path()
 
   log_command(container, false):next(function(cmd)
     return adapter.exec(cmd)
   end):next(function(stdout)
-    set_preview(stdout)
+    set_preview(hovered_path, stdout)
   end):catch(function(err)
     notify_error('Failed to load logs', err)
   end)
@@ -357,9 +358,10 @@ end
 function M.inspect_container(entry)
   local container = container_for(entry)
   if not container then return end
+  local hovered_path = lc.api.get_hovered_path()
 
   adapter.exec({ command_name(), 'inspect', container.id }):next(function(stdout)
-    set_preview(lc.style.highlight(stdout, 'json'))
+    set_preview(hovered_path, lc.style.highlight(stdout, 'json'))
   end):catch(function(err)
     notify_error('Failed to inspect container', err)
   end)
@@ -368,9 +370,10 @@ end
 function M.inspect_image(entry)
   local image = image_for(entry)
   if not image then return end
+  local hovered_path = lc.api.get_hovered_path()
 
   adapter.exec({ command_name(), 'image', 'inspect', image.id }):next(function(stdout)
-    set_preview(lc.style.highlight(stdout, 'json'))
+    set_preview(hovered_path, lc.style.highlight(stdout, 'json'))
   end):catch(function(err)
     notify_error('Failed to inspect image', err)
   end)

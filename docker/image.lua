@@ -143,7 +143,7 @@ end
 
 -- 辅助函数：获取当前选中的镜像信息
 local function get_selected_image()
-  local entry = lc.api.page_get_hovered()
+  local entry = lc.api.get_hovered()
   if not entry or not entry.image then return nil end
   return entry
 end
@@ -172,9 +172,10 @@ function M.select_action()
 end
 
 function M.inspect(image)
+  local hovered_path = lc.api.get_hovered_path()
   adapter
     .exec({ 'docker', 'image', 'inspect', image.id })
-    :next(function(stdout) lc.api.page_set_preview(lc.style.highlight(stdout, 'json')) end)
+    :next(function(stdout) lc.api.set_preview(hovered_path, lc.style.highlight(stdout, 'json')) end)
     :catch(function(stderr) lc.notify('Failed to inspect image: ' .. tostring(stderr)) end)
 end
 
