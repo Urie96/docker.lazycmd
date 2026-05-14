@@ -4,13 +4,13 @@ local config = require 'docker.config'
 local M = {}
 
 local function span(text, color)
-  local s = lc.style.span(tostring(text or ''))
+  local s = deck.style.span(tostring(text or ''))
   if color and color ~= '' then s = s:fg(color) end
   return s
 end
 
-local function line(parts) return lc.style.line(parts) end
-local function text(lines) return lc.style.text(lines) end
+local function line(parts) return deck.style.line(parts) end
+local function text(lines) return deck.style.text(lines) end
 
 local function trim_or_empty(value)
   return tostring(value or ''):trim()
@@ -23,7 +23,7 @@ end
 
 local function exec_p(cmd)
   return Promise.new(function(resolve, reject)
-    lc.system(cmd, function(out)
+    deck.system(cmd, function(out)
       if out.code == 0 then
         resolve(out)
         return
@@ -38,27 +38,27 @@ local function exec_p(cmd)
 end
 
 local function current_entry(kind)
-  local entry = lc.api.get_hovered()
+  local entry = deck.api.get_hovered()
   if type(entry) ~= 'table' or entry.kind ~= kind then return nil end
   return entry
 end
 
 local function set_preview(path, lines_or_text)
-  lc.api.set_preview(path, lines_or_text)
+  deck.api.set_preview(path, lines_or_text)
 end
 
 local function notify_error(prefix, err)
-  lc.notify(prefix .. ': ' .. trim_or_empty(err))
+  deck.notify(prefix .. ': ' .. trim_or_empty(err))
 end
 
 local function reload()
-  if (lc.api.get_current_path() or {})[1] == 'docker' then lc.cmd 'reload' end
+  if (deck.api.get_current_path() or {})[1] == 'docker' then deck.cmd 'reload' end
 end
 
 local function container_for(entry)
   entry = entry or current_entry 'container'
   if not entry or not entry.container then
-    lc.notify 'No container selected'
+    deck.notify 'No container selected'
     return nil
   end
   return entry.container
@@ -67,16 +67,16 @@ end
 local function image_for(entry)
   entry = entry or current_entry 'image'
   if not entry or not entry.image then
-    lc.notify 'No image selected'
+    deck.notify 'No image selected'
     return nil
   end
   return entry.image
 end
 
 local function operate_container(container, args, success_message, error_prefix)
-  exec_p(lc.list_extend({ command_name(), 'container' }, args))
+  exec_p(deck.list_extend({ command_name(), 'container' }, args))
     :next(function()
-      lc.notify(success_message)
+      deck.notify(success_message)
       reload()
     end)
     :catch(function(err) notify_error(error_prefix, err) end)
@@ -157,7 +157,7 @@ function M.preview_container(entry, cb)
 
   Promise.all({ detail_area, log_area }):next(function(results)
     local lines = results[1]
-    lc.list_extend(lines, results[2])
+    deck.list_extend(lines, results[2])
     cb(text(lines))
   end):catch(function(err)
     cb(text {
@@ -211,7 +211,7 @@ function M.preview_image(entry, cb)
 
   Promise.all({ detail_area, history_area }):next(function(results)
     local lines = results[1]
-    lc.list_extend(lines, results[2])
+    deck.list_extend(lines, results[2])
     cb(text(lines))
   end):catch(function(err)
     cb(text {
@@ -251,7 +251,7 @@ function M.select_container_action(entry)
   add('show_logs', 'Recent Logs', 'blue')
   add('remove_container', 'Remove', 'red')
 
-  lc.select({
+  deck.select({
     prompt = 'Container action',
     options = options,
   }, function(choice)
@@ -263,7 +263,7 @@ function M.select_image_action(entry)
   local image = image_for(entry)
   if not image then return end
 
-  lc.select({
+  deck.select({
     prompt = 'Image action',
     options = {
       { value = 'inspect_image', display = line { span('Inspect', 'cyan') } },
@@ -310,7 +310,7 @@ function M.remove_container(entry)
   local container = container_for(entry)
   if not container then return end
 
-  lc.confirm {
+  deck.confirm {
     prompt = 'Remove container: ' .. container.name .. '?',
     on_confirm = function()
       operate_container(container, { 'rm', container.name }, 'Removed: ' .. container.name, 'Failed to remove container')
@@ -323,7 +323,7 @@ function M.follow_logs(entry)
   if not container then return end
 
   log_command(container, true):next(function(cmd)
-    lc.interactive(cmd)
+    deck.interactive(cmd)
   end):catch(function(err)
     notify_error('Failed to open logs', err)
   end)
@@ -332,7 +332,7 @@ end
 function M.show_logs(entry)
   local container = container_for(entry)
   if not container then return end
-  local hovered_path = lc.api.get_hovered_path()
+  local hovered_path = deck.api.get_hovered_path()
 
   log_command(container, false):next(function(cmd)
     return adapter.exec(cmd)
@@ -346,22 +346,22 @@ end
 function M.exec_shell(entry)
   local container = container_for(entry)
   if not container then return end
-  lc.interactive { command_name(), 'exec', '-it', container.id, '/bin/sh' }
+  deck.interactive { command_name(), 'exec', '-it', container.id, '/bin/sh' }
 end
 
 function M.stats(entry)
   local container = container_for(entry)
   if not container then return end
-  lc.interactive { command_name(), 'container', 'stats', container.id }
+  deck.interactive { command_name(), 'container', 'stats', container.id }
 end
 
 function M.inspect_container(entry)
   local container = container_for(entry)
   if not container then return end
-  local hovered_path = lc.api.get_hovered_path()
+  local hovered_path = deck.api.get_hovered_path()
 
   adapter.exec({ command_name(), 'inspect', container.id }):next(function(stdout)
-    set_preview(hovered_path, lc.style.highlight(stdout, 'json'))
+    set_preview(hovered_path, deck.style.highlight(stdout, 'json'))
   end):catch(function(err)
     notify_error('Failed to inspect container', err)
   end)
@@ -370,10 +370,10 @@ end
 function M.inspect_image(entry)
   local image = image_for(entry)
   if not image then return end
-  local hovered_path = lc.api.get_hovered_path()
+  local hovered_path = deck.api.get_hovered_path()
 
   adapter.exec({ command_name(), 'image', 'inspect', image.id }):next(function(stdout)
-    set_preview(hovered_path, lc.style.highlight(stdout, 'json'))
+    set_preview(hovered_path, deck.style.highlight(stdout, 'json'))
   end):catch(function(err)
     notify_error('Failed to inspect image', err)
   end)
@@ -382,7 +382,7 @@ end
 function M.pull_image(entry)
   local image = image_for(entry)
   if not image then return end
-  lc.interactive { command_name(), 'pull', image.repository .. ':' .. image.tag }
+  deck.interactive { command_name(), 'pull', image.repository .. ':' .. image.tag }
 end
 
 function M.remove_image(entry)
@@ -390,11 +390,11 @@ function M.remove_image(entry)
   if not image then return end
   local ref = image.repository .. ':' .. image.tag
 
-  lc.confirm {
+  deck.confirm {
     prompt = 'Remove image: ' .. ref .. '?',
     on_confirm = function()
       exec_p({ command_name(), 'rmi', image.id }):next(function()
-        lc.notify('Removed image: ' .. ref)
+        deck.notify('Removed image: ' .. ref)
         reload()
       end):catch(function(err)
         notify_error('Failed to remove image', err)
@@ -408,18 +408,18 @@ function M.save_image(entry)
   if not image then return end
 
   local filename = image.repository:gsub('/', '-') .. '-' .. image.tag .. '.tar'
-  lc.input {
+  deck.input {
     prompt = 'Save image to',
     value = filename,
     on_submit = function(input)
       local target = trim_or_empty(input)
       if target == '' then
-        lc.notify 'Target path is required'
+        deck.notify 'Target path is required'
         return
       end
 
       exec_p({ command_name(), 'save', image.id, '-o', target }):next(function()
-        lc.notify('Saved image to: ' .. target)
+        deck.notify('Saved image to: ' .. target)
       end):catch(function(err)
         notify_error('Failed to save image', err)
       end)

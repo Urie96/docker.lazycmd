@@ -202,7 +202,7 @@ end
 
 function M.exec(cmd)
   return Promise.new(function(resolve, reject)
-    lc.system(cmd, function(output)
+    deck.system(cmd, function(output)
       if output.code == 0 then
         resolve(output.stdout)
       else
@@ -218,8 +218,8 @@ function M.container_list()
   return M.exec(cmd):next(function(stdout)
     stdout = stdout:trim()
     if stdout == '' then error 'No containers found' end
-    local containers = lc.tbl_map(function(line)
-      local success, data = pcall(lc.json.decode, line)
+    local containers = deck.tbl_map(function(line)
+      local success, data = pcall(deck.json.decode, line)
       assert(success and type(data) == 'table', 'Failed to parse JSON output: ' .. line)
 
       return normalize_container_data(data)
@@ -233,7 +233,7 @@ function M.inspect_container(container_id)
   local cmd = { command_name(), 'container', 'inspect', container_id }
 
   return M.exec(cmd):next(function(stdout)
-    local success, data = pcall(lc.json.decode, stdout)
+    local success, data = pcall(deck.json.decode, stdout)
     assert(success and type(data) == 'table' and #data > 0, 'Failed to parse JSON output: ' .. stdout)
     return data[1]
   end)
@@ -245,8 +245,8 @@ function M.image_list()
   return M.exec(cmd):next(function(stdout)
     stdout = stdout:trim()
     if stdout == '' then error 'No images found' end
-    local images = lc.tbl_map(function(line)
-      local success, data = pcall(lc.json.decode, line)
+    local images = deck.tbl_map(function(line)
+      local success, data = pcall(deck.json.decode, line)
       assert(success and type(data) == 'table', 'Failed to parse JSON output: ' .. line)
 
       return normalize_image_data(data)
@@ -260,7 +260,7 @@ function M.inspect_image(image_id)
   local cmd = { command_name(), 'image', 'inspect', image_id }
 
   return M.exec(cmd):next(function(stdout)
-    local success, data = pcall(lc.json.decode, stdout)
+    local success, data = pcall(deck.json.decode, stdout)
     assert(success and type(data) == 'table' and #data > 0, 'Failed to parse JSON output: ' .. stdout)
     return data[1]
   end)
@@ -269,8 +269,8 @@ end
 function M.image_history(image_id)
   return M.exec({ command_name(), 'image', 'history', image_id, '--no-trunc', '--format', '{{json .}}' }):next(
     function(stdout)
-      local layers = lc.tbl_map(function(line)
-        local success, data = pcall(lc.json.decode, line)
+      local layers = deck.tbl_map(function(line)
+        local success, data = pcall(deck.json.decode, line)
         assert(success and type(data) == 'table', 'Failed to parse JSON output: ' .. line)
 
         local size = data.Size or data.size

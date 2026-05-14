@@ -1,6 +1,6 @@
-# Docker Plugin for lazycmd
+# Docker Plugin for lazydeck
 
-Docker 管理插件，当前已实现容器和镜像浏览与常见操作。目录结构已按 `examples/demo.lazycmd/demo` 的方式拆成 `init/config/meta/action` 四层：
+Docker 管理插件，当前已实现容器和镜像浏览与常见操作。目录结构已按 `examples/demo.lazydeck/demo` 的方式拆成 `init/config/meta/action` 四层：
 
 - `docker/init.lua` 负责页面路由和列表构建
 - `docker/config.lua` 负责默认配置和键位

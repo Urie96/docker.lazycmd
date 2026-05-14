@@ -5,12 +5,12 @@ local meta = require 'docker.meta'
 local M = {}
 
 local function span(text, color)
-  local s = lc.style.span(tostring(text or ''))
+  local s = deck.style.span(tostring(text or ''))
   if color and color ~= '' then s = s:fg(color) end
   return s
 end
 
-local function line(parts) return lc.style.line(parts) end
+local function line(parts) return deck.style.line(parts) end
 
 local function resource_entry(resource, title, description, implemented)
   return {
@@ -62,7 +62,7 @@ local function build_container_entries(containers)
     return string.lower(a.name or '') < string.lower(b.name or '')
   end)
 
-  local entries = lc.tbl_map(function(container)
+  local entries = deck.tbl_map(function(container)
     return {
       key = container.id,
       kind = 'container',
@@ -77,7 +77,7 @@ local function build_container_entries(containers)
     }
   end, containers)
 
-  lc.style.align_columns(lc.tbl_map(function(entry) return entry.display end, entries))
+  deck.style.align_columns(deck.tbl_map(function(entry) return entry.display end, entries))
   return meta.attach(entries)
 end
 
@@ -86,7 +86,7 @@ local function build_image_entries(images)
     return tostring(a.created_at or '') > tostring(b.created_at or '')
   end)
 
-  local entries = lc.tbl_map(function(image)
+  local entries = deck.tbl_map(function(image)
     local ref = image.repository .. ':' .. image.tag
     return {
       key = image.id,
@@ -102,7 +102,7 @@ local function build_image_entries(images)
     }
   end, images)
 
-  lc.style.align_columns(lc.tbl_map(function(entry) return entry.display end, entries))
+  deck.style.align_columns(deck.tbl_map(function(entry) return entry.display end, entries))
   return meta.attach(entries)
 end
 
@@ -122,7 +122,7 @@ local function with_loading(path, cb, message)
   })
   return function(handler)
     return function(...)
-      if not lc.deep_equal(expected_path, lc.api.get_current_path()) then return end
+      if not deck.deep_equal(expected_path, deck.api.get_current_path()) then return end
       handler(...)
     end
   end
@@ -166,9 +166,9 @@ function M.setup(opt)
   config.setup(opt or {})
   meta.setup(config.get())
 
-  if not lc.system.executable(config.get().command) then
-    lc.notify(config.get().command .. ' command not found')
-    lc.log('warn', config.get().command .. ' command not found')
+  if not deck.system.executable(config.get().command) then
+    deck.notify(config.get().command .. ' command not found')
+    deck.log('warn', config.get().command .. ' command not found')
   end
 end
 
