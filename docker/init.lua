@@ -4,6 +4,14 @@ local meta = require 'docker.meta'
 
 local M = {}
 
+function M.meta()
+  return {
+    icon = '󰡨',
+    desc = 'Docker containers and images',
+    color = 'cyan',
+  }
+end
+
 local function span(text, color)
   local s = deck.style.span(tostring(text or ''))
   if color and color ~= '' then s = s:fg(color) end
