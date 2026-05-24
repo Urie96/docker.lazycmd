@@ -1,6 +1,6 @@
 local adapter = require 'docker.adapter'
+local action = require 'docker.action'
 local config = require 'docker.config'
-local meta = require 'docker.meta'
 
 local M = {}
 
@@ -40,6 +40,7 @@ local function info_entry(key, message, color)
   return {
     key = key,
     kind = 'info',
+    selectable = false,
     message = message,
     color = color or 'darkgray',
     display = line {
@@ -86,7 +87,7 @@ local function build_container_entries(containers)
   end, containers)
 
   deck.style.align_columns(deck.tbl_map(function(entry) return entry.display end, entries))
-  return meta.attach(entries)
+  return entries
 end
 
 local function build_image_entries(images)
@@ -111,11 +112,11 @@ local function build_image_entries(images)
   end, images)
 
   deck.style.align_columns(deck.tbl_map(function(entry) return entry.display end, entries))
-  return meta.attach(entries)
+  return entries
 end
 
 local function root_entries()
-  return meta.attach {
+  return {
     resource_entry('container', 'Containers', 'List and operate containers', true),
     resource_entry('image', 'Images', 'List and operate images', true),
     resource_entry('volume', 'Volumes', 'Reserved for future implementation', false),
@@ -125,7 +126,7 @@ end
 
 local function with_loading(path, cb, message)
   local expected_path = path
-  cb(meta.attach {
+  cb({
     info_entry('loading', message, 'darkgray'),
   })
   return function(handler)
@@ -140,14 +141,14 @@ local function list_containers(path, cb)
   local guard = with_loading(path, cb, 'Loading containers...')
   adapter.container_list():next(guard(function(containers)
     if #containers == 0 then
-      cb(meta.attach {
+      cb({
         info_entry('empty', 'No containers found', 'yellow'),
       })
       return
     end
     cb(build_container_entries(containers))
   end)):catch(guard(function(err)
-    cb(meta.attach {
+    cb({
       info_entry('error', 'Failed to list containers: ' .. tostring(err), 'red'),
     })
   end))
@@ -157,22 +158,50 @@ local function list_images(path, cb)
   local guard = with_loading(path, cb, 'Loading images...')
   adapter.image_list():next(guard(function(images)
     if #images == 0 then
-      cb(meta.attach {
+      cb({
         info_entry('empty', 'No images found', 'yellow'),
       })
       return
     end
     cb(build_image_entries(images))
   end)):catch(guard(function(err)
-    cb(meta.attach {
+    cb({
       info_entry('error', 'Failed to list images: ' .. tostring(err), 'red'),
     })
   end))
 end
 
+local function register_page_keymaps()
+  local keymap = (config.get() or {}).keymap or {}
+
+  local function map(path, key, callback, desc)
+    if key and key ~= '' then
+      deck.keymap.set('main', key, callback, { path = path, desc = desc })
+    end
+  end
+
+  map('/docker/container/**', keymap.action, action.select_container_action, 'container actions')
+  map('/docker/container/**', keymap.inspect, action.inspect_container, 'inspect container')
+  map('/docker/container/**', keymap.logs, action.show_logs, 'show logs')
+  map('/docker/container/**', keymap.shell, action.exec_shell, 'open shell')
+  map('/docker/container/**', keymap.stats, action.stats, 'container stats')
+  map('/docker/container/**', keymap.start, action.start_container, 'start container')
+  map('/docker/container/**', keymap.stop, action.stop_container, 'stop container')
+  map('/docker/container/**', keymap.restart, action.restart_container, 'restart container')
+  map('/docker/container/**', keymap.pause, action.pause_container, 'pause container')
+  map('/docker/container/**', keymap.unpause, action.unpause_container, 'unpause container')
+  map('/docker/container/**', keymap.remove, action.remove_container, 'remove container')
+
+  map('/docker/image/**', keymap.action, action.select_image_action, 'image actions')
+  map('/docker/image/**', keymap.inspect, action.inspect_image, 'inspect image')
+  map('/docker/image/**', keymap.pull, action.pull_image, 'pull image')
+  map('/docker/image/**', keymap.save, action.save_image, 'save image')
+  map('/docker/image/**', keymap.remove, action.remove_image, 'remove image')
+end
+
 function M.setup(opt)
   config.setup(opt or {})
-  meta.setup(config.get())
+  register_page_keymaps()
 
   if not deck.system.executable(config.get().command) then
     deck.notify(config.get().command .. ' command not found')
@@ -196,9 +225,33 @@ function M.list(path, cb)
     return
   end
 
-  cb(meta.attach {
+  cb({
     info_entry('todo', 'This section is not implemented yet.', 'yellow'),
   })
+end
+
+function M.preview(entry, cb)
+  if not entry then
+    cb(deck.style.text { deck.style.line { 'Docker' } })
+    return
+  end
+
+  if entry.kind == 'resource' then
+    action.preview_resource(entry, cb)
+    return
+  end
+
+  if entry.kind == 'container' then
+    action.preview_container(entry, cb)
+    return
+  end
+
+  if entry.kind == 'image' then
+    action.preview_image(entry, cb)
+    return
+  end
+
+  cb(action.preview_info(entry))
 end
 
 return M
